@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from .models import *
+from app.models import(
+    Author,
+    Category,
+    Librarian,
+    Library,
+    Book
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
