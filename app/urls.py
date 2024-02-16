@@ -15,8 +15,11 @@ from api.views import (
     BookCreateView,
     BookListView,
     BookByIdView,
-    BookByCategoryListView
+    BookByCategoryListView,
+    ExportCSVView,
+    ExportToExcel
     )
+
 
 
 urlpatterns =[
@@ -37,5 +40,8 @@ urlpatterns =[
     path('list-book/',BookListView.as_view(),name='list-book'),
     path('book/<int:pk>/',BookByIdView.as_view(),name='book-by-id'),
     path('books/category/', BookByCategoryListView.as_view(), name='books-by-category'),
+    path('export-books-csv/', ExportCSVView.as_view(), name='export_books_csv'),
+    path('export-books-xl/', ExportToExcel.as_view(), name='export_books_excel'),
+
 ]
 

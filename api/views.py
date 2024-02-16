@@ -1,7 +1,14 @@
+import csv
+from openpyxl import Workbook
 from rest_framework import generics,permissions,status
+from rest_framework import response
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser,IsAuthenticated,AllowAny
 from django.db.models import Q
+from django.http import HttpResponse
+from app.resources import BookResource
+from app.pagination import CustomPagination
 from app.models import(
     Author,
     Category,
@@ -14,8 +21,10 @@ from app.serializers import(
     AuthorSerializer,
     LibrarianSerializer,
     LibrarySerializer,
-    BookSerializer
+    BookSerializer,
+
 )
+
 
 
 #Category-Create
@@ -40,6 +49,7 @@ class CategoryListView(generics.ListAPIView):
     try:
         queryset=Category.objects.all()
         serializer_class=CategorySerializer
+        pagination_class=CustomPagination
         permission_classes=[permissions.AllowAny]
     except Exception as e:
         raise Response({"Error":"Check the given credentials"})
@@ -94,6 +104,7 @@ class AuthorListView(generics.ListAPIView):
     try:
         queryset=Author.objects.all()
         serializer_class=AuthorSerializer
+        pagination_class=CustomPagination
         permission_classes=[permissions.AllowAny]
     
     except Exception as e:
@@ -122,7 +133,7 @@ class AuthorByIdView(generics.RetrieveUpdateDestroyAPIView):
     def delete(self, request, *args, **kwargs):
         try:
             response= super().delete(request, *args, **kwargs)
-            return Response({"message":"Error in deleting"},status=status.HTTP_200_OK)
+            return Response({"message":"Deleted successfully"},status=status.HTTP_200_OK)
         
         except Exception as e:
             return Response({"message":"Error in deleting Author"})
@@ -150,6 +161,7 @@ class LibrarianListView(generics.ListAPIView):
     try:
         queryset=Librarian.objects.all()
         serializer_class=LibrarianSerializer
+        pagination_class=CustomPagination
         permission_classes=[permissions.AllowAny]
 
     except Exception as e:
@@ -208,6 +220,7 @@ class LibraryListView(generics.ListAPIView):
     try:
         queryset=Library.objects.all()
         serializer_class=LibrarySerializer
+        pagination_class=CustomPagination
         permission_classes=[permissions.AllowAny]
 
     except Exception as e:
@@ -263,6 +276,7 @@ class BookListView(generics.ListAPIView):
     try:
         queryset=Book.objects.all()
         serializer_class=BookSerializer
+        pagination_class=CustomPagination
         permission_classes=[permissions.AllowAny]
 
     except Exception as e:
@@ -272,6 +286,7 @@ class BookListView(generics.ListAPIView):
 #Book category-wise
 class BookByCategoryListView(generics.ListAPIView):
     serializer_class = BookSerializer
+    pagination_class=CustomPagination
     permission_classes=[permissions.AllowAny]
 
     def get_queryset(self):
@@ -338,3 +353,42 @@ class BookByIdView(generics.RetrieveUpdateDestroyAPIView):
             return Response({"message":"Error in deletion of Book"})
         
 
+#csv export
+class ExportCSVView(generics.ListAPIView):
+    serializer_class=BookSerializer
+    permission_classes=[permissions.AllowAny]
+    
+    def get(self, request):
+        books = Book.objects.all()
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="books.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Title', 'Author','Genre','Published Date','Copies Available','Language'])
+
+        for book in books:
+            writer.writerow([book.title, book.author.name,book.category.name,book.published_on,book.copies_available,book.language])
+
+        return response
+   
+
+#Export to excel
+class ExportToExcel(generics.ListAPIView):
+    serializer_class=BookSerializer
+    permission_classes=[permissions.AllowAny]
+
+    def get(self, request):
+        books = Book.objects.all()
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="books-data.xlsx"'
+
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.append(['Title', 'Author', 'Genre', 'Published Date', 'Copies Available', 'Language'])
+
+        for book in books:
+            worksheet.append([book.title, book.author.name, book.category.name, book.published_on, book.copies_available, book.language])
+
+        workbook.save(response)
+
+        return response
